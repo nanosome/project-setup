@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="project" default="setup">
+
+	<condition property="windows" >
+		<os family="windows"/>
+	</condition>
+	
+	<property name="root" value="../../" />
+	
+	<target name="init-win" if="windows">
+		<echo>Setting windows environment variables</echo>
+		<property name="exec" value=".exe" environment="true"/>
+	</target>
+	
+	<target name="init-nonwin" unless="windows">
+		<echo>Setting non-windows environment variables</echo>
+		<property name="exec" value="" environment="true"/>
+	</target>
+	
+	<taskdef name="svn" classname="org.tigris.subversion.svnant.SvnTask">
+		<classpath>
+			<fileset dir="./">
+				<include name="**/svn*.jar"/>
+			</fileset>
+		</classpath>
+	</taskdef>
+	
+	<taskdef resource="ise.antelope.tasks.antelope.taskdefs" classpath="./lib/AntelopeTasks_3.5.1/AntelopeTasks_3.5.1.jar" />
+	
+	<target name="setup">
+		<input addproperty="project.name" message="Project Name to create (Camelcase)" />
+		<echo>Creating project '${project.name}'</echo>
+		<stringutil property="project.name.lower" string="${project.name}">
+			<lowercase/>
+		</stringutil>
+		<property name="eclipse.name" value="nanosome-${project.name.lower}" />
+		<property name="project.root" value="${root}nanosome-${project.name.lower}/" />
+		<property name="svn.root" value="http://subversion.assembla.com/svn/nanosome/trunk/as3/${project.name.lower}"/>
+		
+		<filter token="NAME_SMALL" value="${project.name.lower}"/>
+		<filter token="NAME" value="${project.name}"/>
+		
+		<copy todir="${project.root}" filtering="true" includeemptydirs="true">
+			<fileset dir="template">
+				<exclude name="**/*.swc"/>
+			</fileset>
+		</copy>
+		
+		<copy todir="${project.root}">
+			<fileset dir="template">
+				<include name="**/*.swc"/>
+			</fileset>
+		</copy>
+		
+		<move todir="${project.root}">
+			<fileset dir="${project.root}" />
+			<mapper type="regexp" from="(.*)@NAME_SMALL@(.*)" to="\1${project.name.lower}\2"/>
+		</move>
+		
+		<svn javahl="false" svnkit="false" failonerror="false">
+			<mkdir url="${svn.root}" message="Automatic project creation of ${project.name}"/>
+		</svn>
+		
+		<svn javahl="false" svnkit="false">
+			<checkout url="${svn.root}" destPath="${project.root}" />
+			<add>
+				<fileset dir="${project.root}">
+					<include name="**\*.*" />
+				</fileset>
+			</add>
+			<propset path="${project.root}" name="svn.ignore" value="incubation
+			temp" />
+			<propset path="${project.root}/bin" name="svn.ignore" value="*.*" />
+			<propset path="${project.root}/build" name="svn.ignore" value="local.properties" />	
+			<propset path="${project.root}/build" name="svn.externals" value="global http://subversion.assembla.com/svn/nanosome/trunk/as3/util/build/global" />
+			<commit message="Initial project setup" />
+		</svn>
+	</target>
+</project>
